@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Contract Interaction</title>
+    <script src="https://cdn.ethers.io/lib/ethers-5.3.umd.min.js" type="application/javascript"></script>
+    
+    <!-- Import Montserrat font from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Add some colorful styling -->
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        h1 {
+            color: #ff6347;
+            font-weight: 600;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #4682b4;
+            margin: 20px 0 10px;
+            font-weight: 600;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #45a049;
+        }
+
+        input {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 2px solid #ccc;
+            font-size: 1rem;
+        }
+
+        #walletAddress {
+            font-size: 1.2rem;
+            color: #4682b4;
+            margin: 10px 0;
+        }
+
+        #currentValue {
+            font-weight: bold;
+            color: #ff4500;
+            margin: 10px 0;
+        }
+
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #interactionSection {
+            display: none;
+        }
+
+        #setValueButton {
+            background-color: #ff6347;
+        }
+
+        #setValueButton:hover:not(:disabled) {
+            background-color: #e55340;
+        }
+
+        #getValueButton {
+            background-color: #4682b4;
+        }
+
+        #getValueButton:hover:not(:disabled) {
+            background-color: #3b73a1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Smart Contract Interaction</h1>
+
+        <!-- Button to connect Metamask -->
+        <button id="connectWalletButton">Connect Wallet</button>
+        <p id="walletAddress"></p>
+
+        <!-- Interaction section (hidden until wallet is connected) -->
+        <div id="interactionSection">
+            <!-- Section to display the current value of 'num' -->
+            <h2>Current Contract Value:</h2>
+            <p id="currentValue">Loading...</p>
+            <button id="getValueButton">Get Current Value</button>
+
+            <!-- Section to set a new value -->
+            <h2>Set New Value:</h2>
+            <input type="number" id="newValueInput" placeholder="Enter new number" />
+            <button id="setValueButton">Set New Value</button>
+        </div>
+    </div>
+
+    <script>
+        const contractAddress = "0x6E9d810Cd6610d66160941fD8Ec9008033552cC3";
+        const contractABI = [
+            {
+                "inputs": [],
+                "name": "num",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "input",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "setNum",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+
+        let provider;
+        let signer;
+        let contract;
+
+        // Connect wallet and initialize provider, signer, and contract
+        document.getElementById('connectWalletButton').addEventListener('click', async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                await ethereum.request({ method: 'eth_requestAccounts' });
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                document.getElementById('walletAddress').innerText = `Connected: ${await signer.getAddress()}`;
+
+                // Initialize contract
+                contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+                // Show the interaction section after wallet connection
+                document.getElementById('interactionSection').style.display = 'block';
+                document.getElementById('connectWalletButton').style.display = 'none';  // Hide the connect button
+            } else {
+                alert("MetaMask is not installed. Please install MetaMask and try again.");
+            }
+        });
+
+        // Get the current value of 'num' from the contract
+        document.getElementById('getValueButton').addEventListener('click', async () => {
+            if (contract) {
+                const value = await contract.num();
+                document.getElementById('currentValue').innerText = `Current Value: ${value.toString()}`;
+            } else {
+                alert("Please connect your wallet first.");
+            }
+        });
+
+        // Set a new value for 'num' in the contract
+        document.getElementById('setValueButton').addEventListener('click', async () => {
+            if (contract) {
+                const newValue = document.getElementById('newValueInput').value;
+                if (newValue) {
+                    const tx = await contract.setNum(newValue);
+                    await tx.wait();
+                    alert(`Transaction confirmed! New value set to: ${newValue}`);
+                } else {
+                    alert("Please enter a value.");
+                }
+            } else {
+                alert("Please connect your wallet first.");
+            }
+        });
+    </script>
+</body>
+</html>
